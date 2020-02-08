@@ -1,5 +1,7 @@
 # Explorations in Artificial Intelligence
 
+[![Flying Robot][robot-flying] To Me to the Wiki][wiki]
+
 My overarching methodology is to develop Artificial General Intelligence
 (referenced within this project as simply AI) using
 almost exclusively neural networks (NN).
@@ -141,3 +143,5 @@ Teach a NN the identification and location of sound. from binaural microphones.
 <!-- referneces and media -->
 [ai-1-readme]: https://github.com/roadnarrows-robotics/ai.1/README
 [ai-2-readme]: https://github.com/roadnarrows-robotics/ai.2/README
+[wiki]: https://github.com/roadnarrows-robotics/ai/wiki
+[robot-flying]: https://github.com/roadnarrows-robotics/ai/wiki/assets/images/RobotCatFlying.png
