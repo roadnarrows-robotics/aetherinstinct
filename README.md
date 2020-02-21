@@ -1,6 +1,6 @@
 # Explorations in Artificial Intelligence
 
-[![Flying Robot][robot-flying] To Me to the Wiki][wiki]
+[![Flying Robot][robot-flying]Fly Me to the Wiki][wiki]
 
 My overarching methodology is to develop Artificial General Intelligence
 (referenced within this project as simply AI) using
