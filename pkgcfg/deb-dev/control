@@ -1,0 +1,8 @@
+Package:aether-instinct-dev
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: @ARCH@
+Depends:
+Maintainer: Robin Knight <robin.knight@roadnarrows.com>
+Description: Aether Instinct development package.

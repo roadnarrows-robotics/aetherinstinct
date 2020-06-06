@@ -1,0 +1,4 @@
+[submodule "third_party/rnr-sdk"]
+    ignore = dirty
+    path = third_party/rnr-sdk
+    url = https://github.com/roadnarrows-robotics/rnr-sdk

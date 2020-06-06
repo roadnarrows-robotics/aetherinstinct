@@ -2,6 +2,9 @@
 
 [![Flying Robot][robot-flying]Fly Me to the Wiki][wiki]
 
+## Install Aether Instinct
+[Install][ai-install]
+
 My overarching methodology is to develop Artificial General Intelligence
 (referenced within this project as simply AI) using
 almost exclusively neural networks (NN).
@@ -11,7 +14,7 @@ added, progressing up to the Capable Interpreter.
 The inspiration of this work will be Evolution, Neuroscience, and Logic,
 with a strong dose of Ethics.
 
-### Evoluion
+### Evolution
 Evolution has finely tuned the human brain. The brain contains many
 subconscious task-specific modules, all competing for the attention of the
 concsious, so that our internal Interpreter can construct a rational narrative
@@ -145,3 +148,4 @@ Teach a NN the identification and location of sound. from binaural microphones.
 [ai-2-readme]: https://github.com/roadnarrows-robotics/ai.2/README
 [wiki]: https://github.com/roadnarrows-robotics/ai/wiki
 [robot-flying]: https://github.com/roadnarrows-robotics/ai/wiki/assets/images/RobotCatFlying.png
+[ai-install]: https://github.com/roadnarrows-robotics/ai/INSTALL
