@@ -1,4 +1,5 @@
 [submodule "rnmake"]
+  update = checkout
   ignore = dirty
   path = rnmake
   url = https://github.com/roadnarrows-robotics/rnmake
