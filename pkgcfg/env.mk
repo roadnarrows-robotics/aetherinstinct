@@ -1,13 +1,10 @@
 ################################################################################
 #
-# env.mk
-#
 ifdef RNMAKE_DOXY
 /*! 
 \file 
 
-\brief Aether Instinct rnmake environment override version of the rnmake system
-command-line and environment variables helper makefile.
+\brief Aether Instinct rnmake environment overrides.
 
 \pkgsynopsis
 RN Make System, AI version.
@@ -31,7 +28,7 @@ endif
 
 #$(info DBG: $(lastword $(MAKEFILE_LIST)))
 
-export _ENV_MK = 1
+export _PKGCFG_ENV_MK = 1
 
 # must be defined and non-empty
 ifeq ($(AI_WORKSPACE),)
@@ -39,63 +36,49 @@ ifeq ($(AI_WORKSPACE),)
 endif
 
 # ------------------------------------------------------------------------------
-# RNMAKE_ARCH_TAG
-# 	What:									Determines which architecture makefile to include.
-# 													Arch.$(RNMAKE_ARCH_TAG).mk
-# 	Environment variable: AIMAKE_ARCH_DFT
-# 	Make override:				make arch=<arch> ...
-# 	Default:							x86_64
-# 	Required:							no
+# RNMAKE_ARCH_DFT
+#   Determines default architecture to make.
+#
+#   Environment variable: AI_ARCH_DFT
+#   Fallback default:     x86_64
 # ------------------------------------------------------------------------------
 
-# 'make arch=<arch> ...' or AIMAKE_ARCH_DFT or x86_64
-AIMAKE_ARCH_DFT ?= x86_64
-arch ?= $(AIMAKE_ARCH_DFT)
+# 'make arch=<arch> ...' or @ID_PKG@_ARCH_DFT or x86_64
+AI_ARCH_DFT ?= x86_64
 
-RNMAKE_ARCH_TAG := $(arch)
-
+# rnmake variable
+RNMAKE_ARCH_TAG = $(AI_ARCH_DFT)
 
 # ------------------------------------------------------------------------------
 # RNMAKE_INSTALL_XPREFIX
-# 	What:									Cross-install prefix.
-# 												Actual packages are installed to
-# 	                      	$(RNMAKE_INSTALL_XPREFIX)/$(RNMAKE_ARCH)/
-# 	Environment variable: AIMAKE_INSTALL_XPREFIX
-# 	Make override:				make xprefix=<path> ...
-# 	Default:							$(HOME)/xinstall
-# 	Required:							no
+#   Cross-install prefix. Actual packages are installed to:
+#   $(RNMAKE_INSTALL_XPREFIX)/$(RNMAKE_ARCH)/
+#
+#   Environment variable: AI_INSTALL_XPREFIX
+#   Fallback default:     $(HOME)/xinstall
 # ------------------------------------------------------------------------------
 
 # 'make xprefix=<path> ...' or RNMAKE_INSTALL_XPREFIX
-AIMAKE_INSTALL_XPREFIX ?= $(HOME)/xinstall
-xprefix ?= $(AIMAKE_INSTALL_XPREFIX)
+AI_INSTALL_XPREFIX ?= $(HOME)/xinstall
 
-# make cannonical path (does not have to exist)
-RNMAKE_INSTALL_XPREFIX := $(abspath $(xprefix))
-
+# rnmake variable
+RNMAKE_INSTALL_XPREFIX = $(AI_INSTALL_XPREFIX)
 
 # ------------------------------------------------------------------------------
 # RNMAKE_INSTALL_PREFIX
-# 	What:									Install prefix. Overrides RNMAKE_INSTALL_XPREFIX.
-# 												Packages are installed to:
-# 													$(RNMAKE_INSTALL_PREFIX)/
-# 	Environment variable: AIMAKE_INSTALL_PREFIX
-# 	Make override:				make prefix=_path_ ...
-# 	Default:							
-# 	Required:							no
+#   Install prefix. Overrides RNMAKE_INSTALL_XPREFIX. Packages are installed to:
+#   $(RNMAKE_INSTALL_PREFIX)/
+#
+#   Environment Variable: AI_INSTALL_PREFIX
 # ------------------------------------------------------------------------------
 
-# 'make prefix=<path> ...' or AIMAKE_INSTALL_PREFIX
-prefix ?= $(AIMAKE_INSTALL_PREFIX)
-
-# make cannonical path (does not have to exist)
-RNMAKE_INSTALL_PREFIX := $(abspath $(prefix))
-
+# rnmake variable
+RNMAKE_INSTALL_PREFIX = $(AI_INSTALL_PREFIX)
 
 # ------------------------------------------------------------------------------
 # Export to sub-makes
 #
-export RNMAKE_ARCH_TAG
+export RNMAKE_ARCH_DFT
 export RNMAKE_INSTALL_XPREFIX
 export RNMAKE_INSTALL_PREFIX
 

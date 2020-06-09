@@ -23,21 +23,10 @@
 # software.
 #
 
-import random
-from enum import Enum
 import io
 
-import ai.utils.color as sut
-
-# -----------------------------------------------------------------------------
-# Unit Test Data
-# -----------------------------------------------------------------------------
-# null and singleton datasets
-dsNotifiers = UTDataset('ds_notifiers',           # tcw notifiers plus unknown
-                data=['debug', 'info', 'warn', 'error', 'critical', 'ooga'])
-
-# the database of datasets
-db = UTDsDb('db', ds=[dsBoilOne, dsNotifiers])
+import aetherinstinct.testing.ut as ut
+import aetherinstinct.utils.color as sut
 
 # -----------------------------------------------------------------------------
 # Unit Tests
@@ -125,13 +114,21 @@ class utNotifier(UT):
 # -----------------------------------------------------------------------------
 # Unit Test Subsystem, Suite, Sequencer, and Main
 # -----------------------------------------------------------------------------
+
+# termcolorwriter notifiers plus unknown
+dsNotifiers = UTDataset('ds_notifiers',
+                data=['debug', 'info', 'warn', 'error', 'critical', 'wtf'])
+
+# the database of datasets
+db = UTDsDb('db', ds=[dsBoilOne, dsNotifiers])
+
 suite = UTSuite('testsuite',
   subsystems=[
     UTSubsys('TermColorWriter', "Test terminal color writer class.",
       unittests=[
-        utCPrint('ds_boil_one'),
-        utNCPrint('ds_boil_one'),
-        utNotifier('ds_notifiers'),
+        utCPrint(dsBoilOne),
+        utNCPrint(dsBoilOne),
+        utNotifier(dsNotifiers),
       ]
     ),
   ],
@@ -139,4 +136,7 @@ suite = UTSuite('testsuite',
 
 utseq = UTSequencer('color', suite, db, tcw=sut.TermColorWriter())
 
-utmain = lambda: UTMainTemplate(utseq, "Unit test color module.")
+#utmain = lambda: UTMainTemplate(utseq, "Unit test color module.")
+def utmain():
+  return UTMainTemplate(utseq, "Unit test color module.")
+
