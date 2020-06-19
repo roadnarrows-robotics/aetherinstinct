@@ -10,3 +10,4 @@
 */obj/
 */wrap/
 *.egg-info
+*.done

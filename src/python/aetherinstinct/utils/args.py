@@ -3,8 +3,6 @@ Command-line argument parsing with structured printing.
 
 See the argparse python module for details to extend argument parsing.
 
-Author: Robin Knight
-
 \LegalBegin
  Copyright 2019-2020 Aether Instinct LLC. All Rights Reserved
 

@@ -1,9 +1,8 @@
 """
 Unit testing framework.
 
-It is intended that each (sub)package public MODULE should import and
-execute the corresponding .tests.utMODULE specific unit tests under
-the __main__ section of MODULE.
+It is intended that each (sub)package public MODULE should have an associated
+unit test module under the ut subdirectory.
 
 Acronyms:
   SUT     System Under Test
@@ -28,36 +27,24 @@ Runs all specified          UTSequencer <-- UTCli  Provides command-line
 tests with options                                 interface to parse input test
                                                    options and arguments
 
-Package:
-  RoadNarrows elemenpy python package.
-
-File:
-  ut.py
-
-Link:
-  https://github.com/roadnarrows-robotics/
-
-Copyright:
-  (c) 2019. RoadNarrows LLC
-  http://www.roadnarrows.com
-  All Rights Reserved
-
-License:
-  MIT
+\LegalBegin
+MIT
+\LegalEnd
 """
 
 import os
 import sys
 import io
+import traceback
 from enum import Enum 
 from copy import copy
 import argparse
 
 # minimize imports from elemenpy package since also candiate sut's
-from elemenpy.core.common import (enumfactory, indexget, termsize)
-from elemenpy.core.format import (unicode_encoder)
-from elemenpy.core.color import (TermColors)
-from elemenpy.core.args import (SmartFormatter)
+from aetherinstinct.utils.common import (enumfactory, indexget, termsize)
+from aetherinstinct.utils.format import (unicode_encoder)
+from aetherinstinct.utils.color import (TermColors)
+from aetherinstinct.utils.args import (SmartFormatter)
 
 # -----------------------------------------------------------------------------
 # UTState Enumeration
@@ -69,6 +56,26 @@ class UTState(Enum):
   FAIL  = 2   # test failed
   FATAL = 3   # crash n' burn - test not well framed
   WAIT  = 4   # test in progress
+
+# -----------------------------------------------------------------------------
+# UTString Enumeration
+# -----------------------------------------------------------------------------
+class UTString(Enum):
+  """ Useful (unicode) string enumeration. """
+  OK        = UTState.PASS.value  # test (expected) result is ok
+  NOK       = UTState.FAIL.value  # test (expected) result is not ok
+  LARROW    = '\u2190'    # left arrow
+  RARROW    = '\u2192'    # right arrow
+  ID_TO     = '\u2261'    # identical to (3 horizontal bars)
+  NID_TO    = '\u2262'    # not identical to (3 horizontal bars and slash)
+  EQ        = '\u003d'    # equal
+  NEQ       = '\u2260'    # not equal (slashed equal sign)
+  AEQ       = '\u2245'    # approximately equal (tilde over equal sign)
+  IS_TRUE   = '\u22a8'    # is true of (vertical bar equal)
+  IS_NTRUE  = '\u22ad'    # is not true of (slashed is_true)
+  IS_DEF    = '\u2254'    # is defined as (i am walrus)
+  DASH      = '\u2500'    # midline dash
+  DDASH     = '\u2550'    # double midline dash
 
 # -----------------------------------------------------------------------------
 # Class UTStats
@@ -165,9 +172,34 @@ class UTStats:
       raise ValueError(f"{r.name} has no statistics")
 
 # -----------------------------------------------------------------------------
-# Class Colorize
+# Class UTStringIO
 # -----------------------------------------------------------------------------
-class Colorize:
+class UTStringIO:
+  """ Simple io.StringIO wrapper class. """
+  def __init__(self):
+    """ Initializer. """
+    self._stream = io.StringIO()
+
+  def __del__(self):
+    """ Destructor. """
+    self._stream.close()
+
+  @property
+  def stream(self):
+    """ Return StringIO object. """
+    return self._stream
+
+  def lines(self):
+    """ Return list of lines written to stream. """
+    olines = self._stream.getvalue().split('\n')
+    if olines[-1] == '':
+      olines = olines[:-1]
+    return olines
+
+# -----------------------------------------------------------------------------
+# Class UTColorize
+# -----------------------------------------------------------------------------
+class UTColorize:
   """
   Color class. Look ANSI!
   """
@@ -188,7 +220,7 @@ class Colorize:
     return  f"{self.__module__}.{self.__class__.__name__}()"
 
   def __str__(self):
-    return f"Colorize"
+    return "UTColorize"
 
   def __call__(self, obj, color):
     """
@@ -239,27 +271,16 @@ class Colorize:
       Color string.
     """
     v = enumfactory(UTState, state)
-    c = Colorize.StateColor[v]
+    c = UTColorize.StateColor[v]
     return f"{self.tc[c]}{v.name}{self.tc['normal']}"
 
   def using_color(self):
     """ Returns True/False if color is enabled. """
-    return self.tc.usingColor()
+    return self.tc.is_coloring()
 
-# -----------------------------------------------------------------------------
-# Useful Shorthands
-# -----------------------------------------------------------------------------
-Ok        = UTState.PASS.value  # test (expected) result is ok
-Nok       = UTState.FAIL.value  # test (expected) result is not ok
-uRArrow   = '\u2192'            # right arrow
-uIdTo     = '\u2261'            # identical to (3 horizontal bars)
-uNidTo    = '\u2262'            # not identical to (3 horizontal bars and slash)
-uEq       = '\u003d'            # equal to
-uNeq      = '\u2260'            # not equal to
-uApprox   = '\u2245'            # approximately equal to
-uTrue     = '\u22a8'            # is true
-uNtrue    = '\u22ad'            # is not true
-uColonEq  = '\u2254'            # colon equals
+  def plen(self, s):
+    """ Return string s print length sans escape sequences. """
+    return self.tc.plen(s)
 
 # -----------------------------------------------------------------------------
 # Class UTDataset
@@ -281,8 +302,8 @@ class UTDataset:
       name    Dataset name.
       data    Dataset data.
     """
-    self.name = str(name)
-    self.data = data
+    self._name  = str(name)
+    self._data  = data
 
   @classmethod
   def from_value(klass, value):
@@ -317,26 +338,26 @@ class UTDataset:
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.data!r})"
+            f"({self._name!r}, {self._data!r})"
 
   def __str__(self):
-    return f"ds.{self.name}"
+    return f"ds.{self._name}"
 
   def __len__(self):
     """ Number of data points in dataset. """
-    return len(self.data)
+    return len(self._data)
 
   def __iter__(self):
     """ Iterator over dataset. """
-    return self.data.__iter__()
+    return self._data.__iter__()
 
   def __getitem__(self, i):
     """ __getitem__(i)  <==> data[i]. """
-    return self.data[i]
+    return self._data[i]
 
   def __setitem__(self, i, datum):
     """ __setitem__(i, datum)  <==> data[i] = datum. """
-    self.data[i] = datum
+    self._data[i] = datum
 
   def __contains__(self, datum):
     """ Return the outcome of the test 'datum in dataset'. """
@@ -354,7 +375,7 @@ class UTDataset:
       rhs   A UTDataset convertible value.
     """
     ds2 = self.from_value(rhs)
-    return UTDataset(f"{self.name}+{ds2.name}", self.data+ds2.data)
+    return UTDataset(f"{self._name}+{ds2.name}", self._data+ds2.data)
 
   def __iadd__(self, rhs):
     """ In-place concatenation. self += rhs.
@@ -363,16 +384,26 @@ class UTDataset:
       rhs   A UTDataset convertible value.
     """
     ds2 = self.from_value(rhs)
-    self.data += ds2.data
+    self._data += ds2.data
     return self
+
+  @property
+  def name(self):
+    """ Return dataset name. """
+    return self._name
+
+  @property
+  def data(self):
+    """ Return dataset data. """
+    return self._data
 
   def copy(self):
     """ self.copy() --> dataset -- shallow copy of self. """
-    return UTDataset(self.name, self.data.copy())
+    return UTDataset(self._name, self._data.copy())
 
   def append(self, datum):
     """ Append datum object to end of dataset. """
-    self.data.append(datum)
+    self._data.append(datum)
 
   def index(self, datum, *args):
     """
@@ -389,7 +420,7 @@ class UTDataset:
       Integer index of first tag found.
       Raises ValueError if the tag is not present.
     """
-    return self.data.index(datum, *args)
+    return self._data.index(datum, *args)
 
   def pair(self, pair2):
     """
@@ -411,7 +442,7 @@ class UTDataset:
     for d in self:
       for e in ds2:
         pairs.append((d, e))
-    return UTDataset(f"({self.name}, {ds2.name})", pairs)
+    return UTDataset(f"({self._name}, {ds2.name})", pairs)
 
 # -----------------------------------------------------------------------------
 # Class UTDsDb
@@ -423,57 +454,67 @@ class UTDsDb:
   An iterable over datasets.
   """
   def __init__(self, name, ds=[]):
-    self.name = str(name)
-    self.db   = {}
+    self._name  = str(name)
+    self._db    = {}
     for d in ds:
       v = UTDataset.from_value(d)
-      if v.name not in self.db:
-        self.db[v.name] = v
+      if v.name not in self._db:
+        self._db[v.name] = v
       else:
         raise KeyError(f"{df.name} duplicate key in database")
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.db!r})"
+            f"({self._name!r})"
 
   def __str__(self):
-    return f"dsdb.{self.name}"
+    return f"dsdb.{self._name}"
 
   def __len__(self):
     """ Number of db datasets. """
-    return len(self.db)
+    return len(self._db)
 
   def __iter__(self):
     """ Iterator over db. """
-    return self.db.__iter__()
+    return self._db.__iter__()
 
   def __getitem__(self, k):
     """ __getitem__(k)  <==> db[k]. """
-    return self.db[k]
+    return self._db[k]
 
   def __setitem__(self, k, v):
     """ __setitem__(k, v)  <==> db[k] = v. """
-    self.db[k] = UTDataset.from_value(v)
+    self._db[k] = UTDataset.from_value(v)
 
   def __contains__(self, k):
     """ True if db has key k, else False. """
-    return k in self.db
+    return k in self._db
 
   def __delitem__(self, k):
     """ Delete db[k]. """
-    del self.db[k]
+    del self._db[k]
 
   def items(self):
     """ Return key,datasets iterator. """
-    return self.db.items()
+    return self._db.items()
 
   def keys(self):
     """ Return key iterator. """
-    return self.db.keys()
+    return self._db.keys()
+
+  @property
+  def name(self):
+    """ Return dataset database name. """
+    return self._name
+
+  @property
+  def db(self):
+    """ Return dataset database. """
+    return self._db
 
   def datasets(self):
     """ Return datasets iterator. """
-    return self.db.values()
+    return self._db.values()
 
 # -----------------------------------------------------------------------------
 # Class UT
@@ -510,8 +551,8 @@ class UT:
       args    Test additional arguments beyond the standard arguments.
       kwargs  Test additional keyword arguments beyond the standard arguments.
     """
-    self.name   = str(name)
-    self.dskey  = dskey
+    self._name  = str(name)
+    self._dskey = dskey
     self.args   = args
     self.kwargs = kwargs
 
@@ -525,13 +566,23 @@ class UT:
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.dskey!r}, {self.args} {self.kwargs})"
+            f"({self._name!r}, {self._dskey!r}, {self.args} {self.kwargs})"
 
   def __str__(self):
-    return f"ut.{self.name}"
+    return f"ut.{self._name}"
 
   def __iter__(self):
     return self.ds.__iter__()
+
+  @property
+  def name(self):
+    """ Return unit test name. """
+    return self._name
+
+  @property
+  def dskey(self):
+    """ Return dataset key """
+    return self._dskey
 
   def prep(self, sequencer):
     """
@@ -542,11 +593,10 @@ class UT:
     """
     self.reset()
     try:
-      self.ds = sequencer.dsdb[self.dskey] # always regrab since data can change
+      self.ds = sequencer.dsdb[self._dskey] # regrab since data can change
     except KeyError:
       raise KeyError(
-        f"{self.dskey!r} not in sequencer database - spelling? forget to add?")
-
+        f"{self._dskey!r} not in sequencer database; spelling? forget to add?")
 
   def begin(self, sequencer, datum):
     """
@@ -632,7 +682,7 @@ class UTDsAux:
     Parameters:
       dskey   Secondary db dataset key.
     """
-    self.dskey  = dskey
+    self._dskey = dskey
 
     self.ds     = None  # the dataset
     self.count  = 0     # number of items in dataset
@@ -651,7 +701,7 @@ class UTDsAux:
     Parameters:
       sequencer   Tests sequencer.
     """
-    self.ds     = sequencer.dsdb[self.dskey]
+    self.ds     = sequencer.dsdb[self._dskey]
     self.count  = len(self.ds) 
     self.i      = 0
 
@@ -703,8 +753,8 @@ class UTSubsys:
       unittests   List of unit tests.
       prereqs     List of subsystem test to run prior to this subsystem.
     """
-    self.name     = name
-    self.desc     = desc
+    self._name    = name
+    self._desc    = desc
     self.ut       = unittests
     self.prereqs  = prereqs
 
@@ -751,10 +801,10 @@ class UTSubsys:
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.desc!r}, {self.ut!r})"
+            f"({self._name!r}, {self._desc!r}, {self.ut!r})"
 
   def __str__(self):
-    return f"ssut.{self.name}"
+    return f"ssut.{self._name}"
 
   def __len__(self):
     """ Number of unit tests ut. """
@@ -772,6 +822,20 @@ class UTSubsys:
     """ __getitem__(i)  <==> ut[i]. """
     ut = UTSubsys.from_value(v)
     self.ut[i] = ut
+
+  @property
+  def name(self):
+    """ Return subsystem name. """
+    return self._name
+
+  @property
+  def desc(self):
+    """ Return dataset description. """
+    return self._desc
+
+  def unittests(self):
+    """ Return list of unit test names. """
+    return [u.name for u in self.ut]
 
 # -----------------------------------------------------------------------------
 # Class UTSuite
@@ -792,7 +856,7 @@ class UTSuite:
       name        Name of test suite.
       subsystems  List of subsystem tests convertible values.
     """
-    self.name  = str(name)
+    self._name  = str(name)
     self.ssut = {}    # dictionary of subsystem tests.
     for v in subsystems:
       ss = UTSubsys.from_value(v)
@@ -800,10 +864,10 @@ class UTSuite:
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.ssut!r})"
+            f"({self._name!r}, {self.ssut!r})"
 
   def __str__(self):
-    return f"suite.{self.name}"
+    return f"suite.{self._name}"
 
   def __len__(self):
     """ Number of subsystems. """
@@ -841,6 +905,15 @@ class UTSuite:
     """ Return a subsytems iterator. """
     return self.ssut.values()
 
+  @property
+  def name(self):
+    """ Return test suite name """
+    return self._name
+
+  def subsystems(self):
+    """ Return list of subsystem test names. """
+    return [ss.name for ss in self.ssut]
+
 # -----------------------------------------------------------------------------
 # Class UTSequencer
 # -----------------------------------------------------------------------------
@@ -863,11 +936,11 @@ class UTSequencer:
       dsdb    Database of test datasets.
       kwargs  Optional keyword sequencer and user configuration.
     """
-    self.name   = str(name)
+    self._name  = str(name)
     self.suite  = suite
     self.dsdb   = dsdb
 
-    self.color    = Colorize()      # bind to a terminal colorizer
+    self.colorize = UTColorize()    # bind to a terminal colorizer
     self.stats    = UTStats()       # total SUT statistics
     self.columns  = termsize()[1]   # default output columns
     self.nocolor  = False           # use color
@@ -905,10 +978,10 @@ class UTSequencer:
 
   def __repr__(self):
     return  f"{self.__module__}.{self.__class__.__name__}"\
-            f"({self.name!r}, {self.suite!r}, {self.dsdb!r})"
+            f"({self._name!r}, {self.suite!r}, {self.dsdb!r})"
 
   def __str__(self):
-    return f"seq.{self.name}"
+    return f"seq.{self._name}"
 
   def __getitem__(self, k):
     """ __getitem__(k)  <==> config[k]. """
@@ -918,12 +991,20 @@ class UTSequencer:
     """ __setitem__(k, v)  <==> nfig[k] = v. """
     self.user[k] = v
 
+  @property
+  def name(self):
+    """ Return system under test name """
+    return self._name
+
   def run(self, testnames=[]):
     """
     Run all specified subsystem tests.
 
     Parameters:
       testnames   Names of subsystems to test.
+
+    Return:
+      Total statistics.
     """
     self.reset()
     self.print_top_hdr(testnames)
@@ -949,7 +1030,7 @@ class UTSequencer:
         try:
           self.ut.reset()
         except Exception as e:
-          self.fatalexit(-1, 'in {utname}.reset()', e)
+          self.fatalexit(-1, f"in {utname}.reset()", e)
 
         self.print_ut_hdr()
 
@@ -957,7 +1038,7 @@ class UTSequencer:
         try:
           self.ut.prep(self)
         except Exception as e:
-          self.fatalexit(-1, 'in {utname}.prep()', e)
+          self.fatalexit(-1, f"in {utname}.prep()", e)
 
         # unit test number
         tnum = 0
@@ -968,7 +1049,7 @@ class UTSequencer:
           try:
             what, expect = self.ut.begin(self, datum)
           except Exception as e:
-            self.fatalexit(tnum, 'in {utname}.begin()', e)
+            self.fatalexit(tnum, f"in {utname}.begin()", e)
 
           self.mark_test_begin(what, expect)
           self.ut.stats.bump_expected(expect)
@@ -977,7 +1058,7 @@ class UTSequencer:
           try:
             result, answer = self.ut.test(self, datum)
           except Exception as e:
-            self.fatalexit(tnum, 'in {utname}.test()', e)
+            self.fatalexit(tnum, f"in {utname}.test()", e)
 
           self.mark_tested(result, answer)
           self.ut.stats.bump_result(result)
@@ -986,7 +1067,7 @@ class UTSequencer:
           try:
             self.ut.end(self)
           except Exception as e:
-            self.fatalexit(tnum, 'in {utname}.end()', e)
+            self.fatalexit(tnum, f"in {utname}.end()", e)
 
           tnum += 1
 
@@ -994,7 +1075,7 @@ class UTSequencer:
         try:
           self.ut.finalize(self)
         except Exception as e:
-          self.fatalexit(-1, 'in {utname}.finalize()', e)
+          self.fatalexit(-1, f"in {utname}.finalize()", e)
         
         self.ssut.stats += self.ut.stats
         self.ssran.append(self.ssut.name)
@@ -1006,11 +1087,13 @@ class UTSequencer:
 
       self.stats += self.ssut.stats
       self.print_stats(self.ssut.name, self.ssut.stats)
+      self.hr(self.columns, color='lightblue')
 
     self.ssut = None
 
     print('')
-    self.print_stats(self.name, self.stats)
+    self.print_stats(self._name, self.stats)
+    return self.stats
 
   def get_avail_tests(self):
     """
@@ -1070,7 +1153,7 @@ class UTSequencer:
     if sp < 0:
       sp = 0
 
-    print(f"[{self.color.utstate(state)}] {s}{'':<{sp}}{post}", end='')
+    print(f"[{self.colorize.utstate(state)}] {s}{'':<{sp}}{post}", end='')
 
   def mark_tested(self, result, lines):
     """
@@ -1086,25 +1169,26 @@ class UTSequencer:
 
     # first line is sandwiched between the prefix and postfix strings
     if type(lines) == str:
-      line = lines
-    elif len(lines) > 0:
+      lines = [lines]
+
+    if len(lines) > 0:
       line = lines[0]
     else:
       line = ''
     w = self.columns - len(pre) - len(post)
     if w < 0:
       w = 0
-    s = self.utwhat + ' ' + line
-    #RDK s = s[:w]
-    s,n = unicode_encoder.pslice(s, stop=w)
-    #RDK sp = self.columns - len(pre) - len(s) - len(post)
+    s = self.truncate(self.utwhat + ' ' + line, w)
+    n = self.plen(s)
     sp = self.columns - len(pre) - n - len(post)
     if sp < 0:
       sp = 0
-    print(f"\r[{self.color.utstate(result)}] {s}{'':<{sp}}{post}")
 
-    if type(lines) == str:
-      return
+    if result == self.utexpect:
+      pf = UTState.PASS
+    else:
+      pf = UTState.FAIL
+    print(f"\r[{self.colorize.utstate(pf)}] {s}{'':<{sp}}{post}")
 
     # subsequent lines printed indented
     sp = len(pre)
@@ -1112,9 +1196,46 @@ class UTSequencer:
     if w < 0:
       w = 0
     for line in lines[1:]:
-      #RDK s = line[:w]
-      s,n = unicode_encoder.pslice(line, stop=w)
+      s = self.truncate(line, w)
       print(f"{'':<{sp}}{s}")
+
+  def plen(self, s, dbg=False):
+    """
+    Calculate actual print length of string s.
+
+    Parameters:
+      s   Text string with embedded ansi escape sequences and unicode
+          non-spacing marks.
+
+    Return:
+      Print length.
+    """
+    rawlen = len(s)
+    esclen = rawlen - self.colorize.plen(s)     # escape sequences length
+    nsmlen = rawlen - unicode_encoder.plen(s)   # non-spacing marks length
+    if dbg:
+      print(f"DBG: plen:', rawlen={rawlen}, esclen={esclen}, nsmlen={nsmlen}")
+    txtlen = rawlen - esclen - nsmlen
+    if txtlen >= 0:
+      return txtlen
+    else:
+      return 0
+
+  def truncate(self, s, w):
+    """
+    Trunctate string s to width.
+
+    Parameters:
+      s   Text string with embedded ansi escape sequences and unicode
+          non-spacing marks.
+      w   Maximum print width.
+
+    Return:
+      Truncated string.
+    """
+    rawlen = len(s)
+    prtlen = self.plen(s)
+    return s[:w+(rawlen-prtlen)]
 
   def print_top_hdr(self, testnames):
     """
@@ -1125,22 +1246,22 @@ class UTSequencer:
     """
     testpath = self.breadcrumbs()
     tlist = ' '.join(testnames)
-    suttests = f"UT.{self.name} test to run"
+    suttests = f"UT.{self._name} subsystem test to run"
     print()
-    print(f"{self.color(suttests, 'green')}: {tlist}")
+    print(f"{self.colorize(suttests, 'green')}: {tlist}")
     print()
-    print(f"  {self.color(testpath, 'lightblue')}")
+    print(f"  {self.colorize(testpath, 'lightblue')}")
 
   def print_ssut_hdr(self):
     """ Print SSUT subheader. """
     testpath = self.breadcrumbs()
     print('')
-    print(f"  {self.color(testpath, 'lightblue')}")
+    print(f"  {self.colorize(testpath, 'lightblue')}")
 
   def print_ut_hdr(self):
     """ Print UT subheader. """
     testpath = self.breadcrumbs()
-    print(f"  {self.color(testpath, 'lightblue')}")
+    print(f"  {self.colorize(testpath, 'lightblue')}")
 
   def print_stats(self, name, stats):
     if len(name) <= 16:
@@ -1148,34 +1269,63 @@ class UTSequencer:
     else:
       n = name[:13] + '...'
       n = f"{n:<16}"
-    print(f"  {self.color(n, 'darkgray')}"
-          f"{self.color(str(stats), 'darkgray')}")
+    print(f"  {self.colorize(n, 'darkgray')}"
+          f"{self.colorize(str(stats), 'darkgray')}")
+
+  def warnstr(self, msg):
+    return self.colorize(f"Warn: {msg}", 'warning')
+
+  def warn(self, msg, file=sys.stdout):
+    """
+    Print unit test warn message in 'official' format.
+
+    Parameters:
+      msg   Warning message.
+      file  Output stream.
+    """
+    print(self.colorize(f"Warn: {msg}", 'warning'), file=file) 
+
+  def failstr(self, msg):
+    return self.colorize(f"Fail: {msg}", 'error')
+
+  def fail(self, msg, file=sys.stdout):
+    """
+    Print unit test fail message in 'official' format.
+
+    Parameters:
+      msg   Error message.
+      file  Output stream.
+    """
+    print(self.colorize(f"Fail: {msg}", 'error'), file=file) 
 
   def fatalexit(self, tnum, doing, e):
     """
     Print fatal message and exit.
 
     Paramters:
-      tnum    Test number that caused fatal exception. -1 if no test.
+      tnum    Test number that caused a fatal exception. -1 if no test.
       doing   While doing something in the unit test cycle.
-      e       Unhandled exception. 
+      e       Unhandled exception.
     """
     testpath = self.breadcrumbs()
     state = UTState.FATAL
     pre   = f"[{state.name}] "
     sp    = len(pre)
-    print(f"\n[{self.color.utstate(state)}] Unhandled exception: "\
+    print(f"\n[{self.colorize.utstate(state)}] Unhandled exception: "\
           f"{e.__class__.__name__}")
     print(f"{'':<{sp}}{e}")
     if tnum >= 0:
-      print(f"{'':<{sp}}{testpath} {doing} test {tnum}")
+      print(f"{'':<{sp}}{testpath} {doing} for test {tnum}")
     else:
       print(f"{'':<{sp}}{testpath} {doing}")
+    self.hr(self.columns, color='fatal')
+    traceback.print_exc(file=sys.stdout)
+    self.hr(self.columns, color='fatal')
     sys.exit(8)
 
   def breadcrumbs(self):
     """ Return unit testing path. """
-    crumbs = f"UT.{self.name}"
+    crumbs = f"UT.{self._name}"
     if self.ssut:
       crumbs += f".{self.ssut.name}"
       if self.ut:
@@ -1213,11 +1363,26 @@ class UTSequencer:
     Parameters:
       enable  True/False.
     """
-    if not self.color.using_color() and enable:
-      self.color.enable()
-    elif self.color.using_color() and not enable:
-      self.color.disable()
-    self._coloring = self.color.using_color()
+    if not self.colorize.using_color() and enable:
+      self.colorize.enable()
+    elif self.colorize.using_color() and not enable:
+      self.colorize.disable()
+    self._coloring = self.colorize.using_color()
+
+  def hr(self, n=80, dline=False, color='normal'):
+    """
+    Output horizontal rule with unicode line code.
+
+    Parameters:
+      n       Length of rule in characters.
+      dline   Create double line. Default: single.
+      color   Color (synonym) of rule.
+    """
+    if dline:
+      line = UTString.DDASH.value * n
+    else:
+      line = UTString.DASH.value * n
+    print(f"{self.colorize(line, color)}")
 
 # -----------------------------------------------------------------------------
 # Class UTCli
@@ -1544,7 +1709,7 @@ def UTMainTemplate(sequencer, synopsis, default_test=None):
     default_test  Default test.
 
   Returns:
-    Zero on success, failure otherwise.
+    Total statistics.
   """
   #cli = UTCli(synopsis)
   cli = UTCliArgParse(synopsis)
@@ -1555,9 +1720,7 @@ def UTMainTemplate(sequencer, synopsis, default_test=None):
 
   sequencer.config(**options)
 
-  sequencer.run(testnames)
-
-  return 0
+  return sequencer.run(testnames)
 
 # -----------------------------------------------------------------------------
 # Boilerplate unit test datasets and functions.
@@ -1628,12 +1791,3 @@ class utBoilBuiltins(UT):
 
   def finalize(self, sequencer):
     self.ds = copy(self.dssave)
-
-# -----------------------------------------------------------------------------
-# Unit tests
-# -----------------------------------------------------------------------------
-if __name__ == "__main__":
-  import sys
-  import tests.utut as ut
-
-  sys.exit(ut.utmain())

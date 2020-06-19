@@ -1,22 +1,9 @@
 """
 Pretty print routines.
 
-Package:
-  RoadNarrows elemenpy package.
-
-File:
-  prettyprint.py
-
-Link:
-  https://github.com/roadnarrows-robotics/
-
-Copyright:
-  (c) 2019. RoadNarrows LLC
-  http://www.roadnarrows.com
-  All Rights Reserved
-
-License:
+\LegalBegin
   MIT
+\LegalEnd
 """
 
 import sys
@@ -69,12 +56,3 @@ def print_to_str(fn, *fn_args, **fn_kwargs):
   if lines[-1] == '\n':
     lines = lines[:-1]
   return lines
-
-# -----------------------------------------------------------------------------
-# Unit tests
-# -----------------------------------------------------------------------------
-if __name__ == "__main__":
-  import sys
-  import tests.utprettyprint as ut
-
-  sys.exit(ut.utmain())

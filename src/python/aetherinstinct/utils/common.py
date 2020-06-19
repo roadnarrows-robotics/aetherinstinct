@@ -1,22 +1,9 @@
 """
 An olio of useful data types and functions.
 
-Package:
-  RoadNarrows elemenpy package.
-
-File:
-  common.py
-
-Link:
-  https://github.com/roadnarrows-robotics/
-
-Copyright:
-  (c) 2019. RoadNarrows LLC
-  http://www.roadnarrows.com
-  All Rights Reserved
-
-License:
+\LegalBegin
   MIT
+\LegalEnd
 """
 
 import sys
@@ -274,13 +261,3 @@ def randomstring(strlen=12, prefix=''):
     return prefix[:strlen]
   src = string.ascii_letters + string.digits
   return prefix + ''.join(random.choice(src) for i in range(n))
-
-
-# -----------------------------------------------------------------------------
-# Unit tests
-# -----------------------------------------------------------------------------
-if __name__ == "__main__":
-  import sys
-  import tests.utcommon as ut
-
-  sys.exit(ut.utmain())

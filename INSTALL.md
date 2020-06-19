@@ -1,4 +1,25 @@
 # Installation
+
+## Git
+### Clone
+On step:
+```
+git clone --recurse-submodules https://github.com/roadnarrows-robotics/aetherinstinct
+```
+
+Multistep clone into directory `./ai`:
+```
+git clone https://github.com/roadnarrows-robotics/aetherinstinct ai
+git submodule init
+git submodule update --recursive
+```
+
+### Update
+```
+git pull
+git submodule update --recursive --remote
+```
+
 ![Rolling Along][robot-wheeled]
 
 The Aether Instinct (AI) package uses a simplified version of the
