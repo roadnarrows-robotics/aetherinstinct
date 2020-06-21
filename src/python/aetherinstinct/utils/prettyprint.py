@@ -10,28 +10,30 @@ import sys
 from io import (StringIO)
 
 ##-
-def print2cols(lines, indent=0, c1width='auto', spacing=1, **print_kwargs):
+def print2cols(obj, indent=0, c1width='auto', sep=':', spacing=1,
+                      **print_kwargs):
   """
   Print lines in two columns.
 
   Parameters:
-    lines         A list of integer indexable name,value pairs (tuple or list)
-                  where name is a string, value is anything printable.
-    indent        Line indentation.
+    obj           An iterable object proviiding tuples of length 2+ per
+                  iteration cycle (e.g. dict.items(), [(v1, v2),...]).
+    indent        Line left indentation.
     c1width       Column one width. If 'auto', then it is determined by the 
                   widest name in lines.
-    spacing       Spacing between columns one and two.
-    print_kwargs  Python3 print() keyword arguments.
+    sep           Separator succeeding end of column 1 values.
+    spacing       Spacing between column one separator and column two.
+    print_kwargs  Any python3 print() keyword arguments.
   """
   if c1width == 'auto':
     c1width = 1
-    for n,v in lines:
-      if len(n) > c1width:
-        c1width = len(n)
-    c1width += 1    # colon
-  for n,v in lines:
-    n += ':'
-    print(f"{'':<{indent}}{n:<{c1width}}{'':<{spacing}}{v}", **print_kwargs)
+    for u,v in obj:
+      if len(u) > c1width:
+        c1width = len(u)
+    c1width += len(sep)
+  for u,v in obj:
+    u += sep
+    print(f"{'':<{indent}}{u:<{c1width}}{'':<{spacing}}{v}", **print_kwargs)
 
 ##-
 def print_to_str(fn, *fn_args, **fn_kwargs):

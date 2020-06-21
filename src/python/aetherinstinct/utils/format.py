@@ -12,7 +12,7 @@ from enum import Enum
 import math
 import string
 
-from elemenpy.core.common import (termsize, enumfactory)
+from aetherinstinct.utils.common import (termsize, enumfactory)
 
 # -----------------------------------------------------------------------------
 # Format Enumeration
