@@ -270,9 +270,13 @@ suite = ut.UTSuite('testsuite',
   ],
 )
 
-# unit test sequencer
+# unit test sequencer (required name for unittest.py script)
 utseq = ut.UTSequencer('color', suite, db, tc=colors, tcw=sut.Colorize())
 
-# required entry point function for unittest.py script
-def utmain():
-  return ut.UTMainTemplate(utseq, "Unit test utils.color module.")
+# -----------------------------------------------------------------------------
+if __name__ == '__main__':
+  def utmain():
+    stats = ut.UTMainTemplate(utseq, "Unit test utils.color module.")
+    return 0
+
+  utmain()

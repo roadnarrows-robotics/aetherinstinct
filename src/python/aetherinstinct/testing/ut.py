@@ -237,11 +237,11 @@ class UTColorize:
 
   def enable(self):
     """ Enable color output, if possible. """
-    self.tc.enable()
+    self.tc.enable_color()
 
   def disable(self):
     """ Disable color output. """
-    self.tc.disable()
+    self.tc.disable_color()
 
   def colors(self):
     """ List available colors. """
@@ -962,8 +962,8 @@ class UTSequencer:
           self.columns  = termsize()[1]   # default output columns
         else:
           self.columns = v
-      elif k == 'nocolor':
-        self.coloring = not v
+      elif k == 'no_color':
+        self.colorize.disable()
       else:
         self.user[k] = v
 
@@ -1145,10 +1145,8 @@ class UTSequencer:
     if w < 0:
       w = 0
 
-    #RDK s = self.utwhat[:w]
     s,n = unicode_encoder.pslice(self.utwhat, stop=w)
 
-    #RDK sp = self.columns - len(pre) - len(s) - len(post)
     sp = self.columns - len(pre) - n - len(post)
     if sp < 0:
       sp = 0
@@ -1353,7 +1351,7 @@ class UTSequencer:
   @property
   def coloring(self):
     """ Return True/False if coloring is enabled. """
-    return self._coloring
+    return self.colorize.using_color()
 
   @coloring.setter
   def coloring(self, enable):
@@ -1367,7 +1365,6 @@ class UTSequencer:
       self.colorize.enable()
     elif self.colorize.using_color() and not enable:
       self.colorize.disable()
-    self._coloring = self.colorize.using_color()
 
   def hr(self, n=80, dline=False, color='normal'):
     """
@@ -1395,7 +1392,7 @@ class UTCli:
   options. The output may be fed into a unit test sequencer.
   """
   OptsHelp    = ['-h', '--help']
-  OptsNoColor = ['--nocolor']
+  OptsNoColor = ['--no_color']
   OptsColumns = ['--columns']
   OptionDesc  = [
     (OptsHelp,    "",     "Print help and exit."),
@@ -1576,8 +1573,8 @@ class UTCliArgParse:
     self.parser = argparse.ArgumentParser(
         formatter_class=SmartFormatter,
         description=self.synopsis)
-    self.parser.add_argument('--nocolor',
-        action='store_true',
+    self.parser.add_argument('--no-color',
+        action='store_false',
         help="Disable color output."),
     self.parser.add_argument('--columns',
         type=int,

@@ -345,9 +345,13 @@ suite = sut.UTSuite('testsuite',
   ],
 )
 
-# unit test sequencer
+# unit test sequencer (required name for unittest.py script)
 utseq = sut.UTSequencer('ut', suite, db)
 
-# required entry point function for unittest.py script
-def utmain():
-  return sut.UTMainTemplate(utseq, "Unit test testing.ut framework module")
+# -----------------------------------------------------------------------------
+if __name__ == '__main__':
+  def utmain():
+    stats = ut.UTMainTemplate(utseq, "Unit test testing.ut framework module.")
+    return 0
+
+  utmain()
