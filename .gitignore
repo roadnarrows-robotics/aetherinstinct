@@ -2,13 +2,13 @@
 # Lines that start with '#' are comments.
 
 # rnmake
-*.deps
-*/include/version.h
-*/loc
-*/dist/
-*/build/
-*/obj/
-*/wrap/
+/dist
+/loc
+**/.deps
+**/build
+**/obj
+**/wrap
 *.egg-info
 *.done
-version.h
+src/include/aetherinstinct/version.h
+src/python/setup.py
