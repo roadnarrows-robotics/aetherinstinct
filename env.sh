@@ -8,14 +8,15 @@
 
 #echo "${BASH_SOURCE[0]}"
 
-# retreive python3's major.minor version 
+# _python3_version
+#   Retreive python3's major.minor version.
 _python3_version()
 {
   local v
   py=$(which python3)
   if [ -x "${py}" ]
   then
-    v=$(${py} --version)
+    v=$(${py} --version 2>&1)
     v=${v#[Pp]ython* }
     v=${v%.[0-9]*}
     echo $v
@@ -24,18 +25,36 @@ _python3_version()
   fi
 }
 
-# paranormal test to see if the component $1 is in the search path $2
-_inpath()
+# _prepend dir path
+#   Prepend directory dir to search path iff dir is not already in path.
+_prepend()
 {
-  local comp
-  echo "${2//:/$'\n'}" | while read comp
-  do
-    if [ "${1}" = "${comp}" ]
-    then
-      return 0
-    fi
-  done
-  return 1
+  local npath=
+  # empty path
+  if [ -z "${2}" ]
+  then
+    npath="${1}"
+  # search path for dir
+  else
+    local parray comp
+    #for comp in ${2//:/$'\n'}
+    IFS=':' read -a parray <<< "${2}"
+    for comp in "${parray[@]}"
+    do
+      # already in path?
+      if [ "${1}" = "${comp}" ]
+      then
+        npath="${2}"
+        break
+      fi
+    done
+  fi
+  # prepend new directory
+  if [ -z "${npath}" ]
+  then
+    npath="${1}:${2}"
+  fi
+  echo "${npath}"
 }
 
 # When this file is sourced, the top of the bash source stack will be this
@@ -56,27 +75,17 @@ export AI_ARCH_DFT=x86_64
 _dist=${AI_WORKSPACE}/dist/dist.${AI_ARCH_DFT}
 
 # fix up PATH to include distribution bin
-_bindir=${_dist}/bin
-if ! _inpath "${_bindir}" "${PATH}"
-then
-  export PATH=${_bindir}:${PATH}
-fi
+export PATH=$(_prepend ${_dist}/bin ${PATH})
 
 # fix up LD_LIBRARY_PATH to include distribution libraries
 _libdirs="${_dist}/lib ${_dist}/lib/aetherinstinct"
 for _d in ${_libdirs}
 do
-  if ! _inpath "${_d}" "${LD_LIBRARY_PATH}"
-  then
-    export LD_LIBRARY_PATH=${_d}:${LD_LIBRARY_PATH}
-  fi
+  export LD_LIBRARY_PATH=$(_prepend ${_d} ${LD_LIBRARY_PATH})
 done
 
 # fix up PYTHONPATH to include distribution python site packages
 _pydir=${_dist}/lib/python${AI_PYTHON_VERSION}/site-packages
-if ! _inpath "${_pydir}" "${PYTHONPATH}"
-then
-  export PYTHONPATH=${_pydir}:${PYTHONPATH}
-fi
+export PYTHONPATH=$(_prepend ${_pydir} ${PYTHONPATH})
 
-unset _python3_version _inpath _root _dist _bindir _libdirs _pydir _d
+unset _python3_version _prepend _root _dist _libdirs _pydir _d

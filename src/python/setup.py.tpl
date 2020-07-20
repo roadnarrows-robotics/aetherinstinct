@@ -17,7 +17,7 @@ PkgInfo = {
     'name':     '@PKG_NAME@',
     'version':  '@PKG_VER@',
 
-    'packages': find_packages(exclude=['testing']),
+    'packages': find_packages(exclude=['@PKG_NAME@.testing']),
     'scripts':  [],
 
     # Project uses reStructuredText, so ensure that the docutils get

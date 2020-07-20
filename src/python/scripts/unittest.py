@@ -4,7 +4,7 @@
 #   unittest.py
 #
 # Usage:
-#   unittest.py [OPTIONS] [SUT[.SSUT] ...]
+#   unittest.py [OPTIONS] [SUT[.SSUT]]...
 #   unittest.py [OPTIONS] all
 #   unittest.py --help
 #
@@ -20,6 +20,14 @@ import getopt
 import importlib
 from collections import OrderedDict
 from pprint import pprint
+
+# bootstrap environment
+WS = os.environ.get('AI_WORKSPACE')
+if not WS:
+  raise NameError("'AI_WORKSPACE' environment variable not defined")
+WsPyDir = os.path.join(WS, 'src', 'python')
+AIDir   = 'aetherinstinct'
+sys.path.insert(0, WsPyDir)
 
 # unit test framework
 import aetherinstinct.testing.ut as ut
@@ -157,12 +165,7 @@ class UnitTestEngine:
 
   def find_modules(self):
     """ Find all unit test modules by file name. """
-    ws = os.environ.get('AI_WORKSPACE')
-    if not ws:
-      self.fatal(4, "'AI_WORKSPACE' environment variable not defined")
-    ai = 'aetherinstinct'
-    pydir = os.path.join(ws, 'src/python')
-    topdir = os.path.join(pydir, ai)
+    topdir = os.path.join(WsPyDir, AIDir)
     paths = []
     for root, dirs, files in os.walk(topdir):
       if os.path.basename(root) in ['ut', 'rut']:
@@ -171,7 +174,7 @@ class UnitTestEngine:
             paths.append(os.path.join(root, f))
     names = []
     for p in paths:
-      p = p[len(pydir)+1:-len('.py')]
+      p = p[len(WsPyDir)+1:-len('.py')]
       names.append(p.replace('/', '.'))
     return names
 
@@ -242,7 +245,7 @@ class UnitTestEngine:
   def print_help(self):
     """ Print command-line help. """
     print(f"""\
-Usage: {self.argv0} [OPTIONS] [SUT[.SSUT]...]
+Usage: {self.argv0} [OPTIONS] [SUT[.SSUT]]...
        {self.argv0} [OPTIONS] all
        {self.argv0} --help
 
